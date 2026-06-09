@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ferramenta de Laudos Médicos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; padding: 2rem 1rem; color: #1a1a1a; }
+  .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 1.5rem; color: #1a1a1a; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .tab { padding: 8px 20px; border-radius: 8px; border: 1px solid #ddd; background: transparent; color: #666; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+  .tab.active { background: #f0f0eb; color: #1a1a1a; border-color: #aaa; font-weight: 500; }
+  .tab:hover { background: #f0f0eb; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .label { font-size: 13px; color: #666; margin-bottom: 8px; display: block; }
+  textarea { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; color: #1a1a1a; background: white; resize: vertical; line-height: 1.6; }
+  textarea:focus { outline: none; border-color: #aaa; }
+  input[type="password"] { width: 100%; padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; color: #1a1a1a; background: white; }
+  input:focus { outline: none; border-color: #aaa; }
+  select { width: 100%; padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; color: #1a1a1a; background: white; }
+  .btn { padding: 9px 20px; border-radius: 8px; border: 1px solid #ddd; background: transparent; color: #1a1a1a; font-size: 14px; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .btn:hover { background: #f0f0eb; }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: #f0f0eb; font-weight: 500; border-color: #aaa; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .status { font-size: 13px; color: #666; }
+  .status.ok { color: #2d7a3a; }
+  .status.err { color: #c0392b; }
+  .section { margin-bottom: 1.5rem; }
+  .key-row { display: flex; gap: 8px; align-items: center; margin-bottom: 1rem; }
+  .key-row input { flex: 1; }
+  .upload-area { border: 1px dashed #ccc; border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; color: #888; font-size: 14px; transition: all 0.15s; margin-bottom: 1rem; }
+  .upload-area:hover { background: #f9f9f6; border-color: #aaa; }
+  .upload-area.has-file { border-style: solid; border-color: #2d7a3a; color: #2d7a3a; }
+  .atalho-item { display: flex; align-items: flex-start; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 8px; gap: 12px; }
+  .atalho-key { font-weight: 500; font-size: 13px; color: #1a6ab5; white-space: nowrap; min-width: 90px; }
+  .atalho-val { font-size: 12px; color: #555; line-height: 1.5; flex: 1; }
+  .correcao-item { display: flex; align-items: flex-start; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 6px; gap: 12px; font-size: 12px; }
+  .correcao-de { color: #c0392b; text-decoration: line-through; min-width: 160px; }
+  .correcao-para { color: #2d7a3a; flex: 1; }
+  .section-title { font-size: 13px; color: #444; margin-bottom: 1rem; font-weight: 500; }
+  .divider { border: none; border-top: 1px solid #e0e0e0; margin: 1.5rem 0; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #e8f4e8; color: #2d7a3a; display: inline-block; margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🩺 Ferramenta de Laudos Médicos <span class="badge">Gemini</span></h1>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('transcricao')">🎙 Transcrição</button>
+    <button class="tab" onclick="showTab('conclusao')">📄 Conclusão</button>
+    <button class="tab" onclick="showTab('atalhos')">⚡ Atalhos</button>
+    <button class="tab" onclick="showTab('config')">⚙️ Config</button>
+  </div>
+
+  <div id="tab-transcricao" class="panel active">
+    <div class="section">
+      <span class="label">Médico que ditou o áudio</span>
+      <select id="medico-select">
+        <option value="outro">Rodrigo / Neto (sem atalhos)</option>
+        <option value="luciano">Luciano (expande atalhos automaticamente)</option>
+      </select>
+    </div>
+    <div class="section">
+      <span class="label">Arquivo de áudio (MP3)</span>
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <div style="font-size:32px; margin-bottom:8px;">⬆️</div>
+        <span id="upload-label">Clique para selecionar o MP3</span>
+      </div>
+      <input type="file" id="file-input" accept=".mp3,.wav,.m4a,.ogg" style="display:none" onchange="onFileSelect(event)">
+    </div>
+    <div class="row" style="margin-top:0; margin-bottom:1rem;">
+      <button class="btn btn-primary" onclick="transcreverAudio()">▶ Transcrever com Gemini</button>
+      <span class="status" id="status-transcricao"></span>
+    </div>
+    <div class="section">
+      <span class="label">Resultado</span>
+      <textarea id="resultado-transcricao" rows="12" placeholder="A transcrição aparece aqui..."></textarea>
+    </div>
+    <div class="row">
+      <button class="btn" onclick="copiar('resultado-transcricao')">📋 Copiar</button>
+      <button class="btn" onclick="mandarParaConclusao()">Usar como achados →</button>
+    </div>
+  </div>
+
+  <div id="tab-conclusao" class="panel">
+    <div class="section">
+      <span class="label">Cole os achados aqui</span>
+      <textarea id="achados-input" rows="10" placeholder="Cole aqui os achados do laudo..."></textarea>
+    </div>
+    <div class="section">
+      <span class="label">Tipo de exame</span>
+      <select id="tipo-exame">
+        <option value="auto">Detectar automaticamente</option>
+        <option value="tomografia">Tomografia</option>
+        <option value="ressonancia">Ressonância magnética</option>
+        <option value="rx">Raio-X</option>
+        <option value="angiotomografia">Angiotomografia</option>
+        <option value="ultrassom">Ultrassom</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:0; margin-bottom:1rem;">
+      <button class="btn btn-primary" onclick="gerarConclusao()">✨ Gerar conclusão</button>
+      <span class="status" id="status-conclusao"></span>
+    </div>
+    <div class="section">
+      <span class="label">Conclusão gerada</span>
+      <textarea id="resultado-conclusao" rows="8" placeholder="A conclusão aparece aqui..."></textarea>
+    </div>
+    <div class="row">
+      <button class="btn" onclick="copiar('resultado-conclusao')">📋 Copiar</button>
+    </div>
+  </div>
+
+  <div id="tab-atalhos" class="panel">
+    <p class="section-title">Atalhos do Luciano</p>
+    <div id="lista-atalhos"></div>
+    <hr class="divider">
+    <p class="section-title">Correções automáticas (todos os médicos)</p>
+    <div id="lista-correcoes"></div>
+  </div>
+
+  <div id="tab-config" class="panel">
+    <div class="section">
+      <span class="label">Chave da API Google Gemini (transcrição) — começa com AIza</span>
+      <div class="key-row">
+        <input type="password" id="gemini-key" placeholder="AIza...">
+        <button class="btn" onclick="salvarChave('gemini')">Salvar</button>
+      </div>
+    </div>
+    <div class="section">
+      <span class="label">Chave da API Anthropic Claude (conclusão) — começa com sk-ant</span>
+      <div class="key-row">
+        <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+        <button class="btn" onclick="salvarChave('anthropic')">Salvar</button>
+      </div>
+      <p style="font-size:12px; color:#888; margin-top:6px;">Chaves ficam salvas no seu navegador.</p>
+    </div>
+    <hr class="divider">
+    <div class="section">
+      <p class="section-title">Status</p>
+      <p style="font-size:13px; margin-bottom:6px;" id="status-gemini">Gemini: chave não configurada</p>
+      <p style="font-size:13px;" id="status-anthropic">Claude: chave não configurada</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const keys = { gemini: '', anthropic: '' };
+
+try {
+  if (localStorage.getItem('gemini_key')) { keys.gemini = localStorage.getItem('gemini_key'); document.getElementById('status-gemini').textContent = 'Gemini: chave configurada ✓'; document.getElementById('status-gemini').style.color = '#2d7a3a'; }
+  if (localStorage.getItem('anthropic_key')) { keys.anthropic = localStorage.getItem('anthropic_key'); document.getElementById('status-anthropic').textContent = 'Claude: chave configurada ✓'; document.getElementById('status-anthropic').style.color = '#2d7a3a'; }
+} catch(e) {}
+
+let selectedFile = null;
+
+const VOCAB_MEDICO = [
+  "osteófitos","tricompartimental","tricompartimentais","femorotibial","femoropatelar",
+  "intercondilianas","côndilo femoral","côndilos femorais","subcondral","cartilagem",
+  "menisco medial","menisco lateral","corno posterior","corno anterior","intrassubstancial",
+  "ligamento cruzado anterior","ligamento cruzado posterior","poplíteo","poplítea","fossa poplítea",
+  "derrame articular","sinovial","proliferação sinovial","entesófito","diáfise femoral",
+  "hiperintensidade de sinal","sequências ponderadas em T2","sequências ponderadas em T1",
+  "substância branca","substância cinzenta","lobos frontais","lobos parietais",
+  "protrusão discal","hérnia discal","saco dural","raiz nervosa","cone medular","cauda equina",
+  "nódulo de Schmorl","espondilose","retificação","lordose","cifose","escoliose",
+  "supraespinhal","infraespinhal","subescapular","redondo menor","bíceps braquial",
+  "manguito rotador","articulação glenoumeral","articulação acromioclavicular",
+  "tubérculos umerais","tenossinovite","tendinopatia","rotura parcial","rotura intrassubstancial",
+  "bursa subacromial","bursa subdeltoidea","bursite","lábio glenoide","sulco intertubercular",
+  "ressonância magnética","tomografia computadorizada","angiotomografia","DP spir","FLAIR","SWI","DWI",
+  "raiz meniscal","corno meniscal","eixo anteroposterior","fibras tendíneas"
+];
+
+const CORRECOES = [
+  [/associa[çc][aã]o magn[eé]tic[ao]/gi, "ressonância magnética"],
+  [/fon[çc]a magn[eé]tica/gi, "ressonância magnética"],
+  [/supraespial/gi, "supraespinhal"],
+  [/infraespial/gi, "infraespinhal"],
+  [/hiperintestado[s]?\s+de\s+sals[ií]cula\s+esp\.?\s*2/gi, "hiperintensidade de sinal nas sequências ponderadas em T2"],
+  [/hiperintestado[s]?/gi, "hiperintensidade de sinal"],
+  [/rotura intersubstancial/gi, "rotura intrassubstancial"],
+  [/b[uú]rstula/gi, "bursa"],
+  [/b[uú]rstite/gi, "bursite"],
+  [/medula rossa/gi, "medular óssea"],
+  [/derrama articular/gi, "derrame articular"],
+  [/fossa pupl[ií]da/gi, "fossa poplítea"],
+];
+
+const CORRECOES_DISPLAY = [
+  ["associação/fonça magnética", "ressonância magnética"],
+  ["supraespial", "supraespinhal"],
+  ["infraespial", "infraespinhal"],
+  ["hiperintestado(s)", "hiperintensidade de sinal"],
+  ["rotura intersubstancial", "rotura intrassubstancial"],
+  ["búrstula / búrstite", "bursa / bursite"],
+  ["medula rossa", "medular óssea"],
+  ["derrama articular", "derrame articular"],
+  ["fossa puplida", "fossa poplítea"],
+];
+
+const ATALHOS_LUCIANO = {
+  "@tric": "Alterações degenerativas tricompartimentais (acima descritas).",
+  "@areas": "Áreas focais de hipersinal nas sequências ponderadas em T2, que não restringem à difusão, subcentimétricas, distribuídas pela substância branca dos lobos frontais e parietais bilateralmente.",
+  "@artrose": "Alterações degenerativas na articulação acromioclavicular caracterizadas por: redução do espaço articular, irregularidade dos contornos das superfícies articulares apostas, edema na medular óssea adjacente, osteófitos marginais, além de hipertrofia capsular.",
+  "@tuber": "Irregularidade dos contornos na camada cortical dos tubérculos umerais, associado a cistos subcorticais na medular óssea adjacente.",
+  "@bursite": "Pequena quantidade de líquido na topografia da bursa subacromial-subdeltoidea que pode estar relacionado a processo inflamatório (bursite)."
+};
+
+function aplicarCorrecoes(texto) {
+  let r = texto;
+  for (const [regex, sub] of CORRECOES) r = r.replace(regex, sub);
+  return r;
+}
+
+function expandirAtalhos(texto) {
+  let r = texto;
+  for (const [k, v] of Object.entries(ATALHOS_LUCIANO))
+    r = r.replace(new RegExp(k.replace('@','\\@'), 'gi'), v);
+  return r;
+}
+
+function renderAtalhos() {
+  document.getElementById('lista-atalhos').innerHTML = Object.entries(ATALHOS_LUCIANO).map(([k,v]) =>
+    `<div class="atalho-item"><span class="atalho-key">${k}</span><span class="atalho-val">${v}</span></div>`
+  ).join('');
+  document.getElementById('lista-correcoes').innerHTML = CORRECOES_DISPLAY.map(([de,para]) =>
+    `<div class="correcao-item"><span class="correcao-de">${de}</span><span class="correcao-para">${para}</span></div>`
+  ).join('');
+}
+
+function showTab(name) {
+  const names = ['transcricao','conclusao','atalhos','config'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'atalhos') renderAtalhos();
+}
+
+function onFileSelect(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  selectedFile = f;
+  document.getElementById('upload-area').classList.add('has-file');
+  document.getElementById('upload-label').textContent = '✓ ' + f.name;
+}
+
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function transcreverAudio() {
+  if (!selectedFile) { setStatus('status-transcricao', 'Selecione um arquivo MP3 primeiro.', 'err'); return; }
+  if (!keys.gemini) { setStatus('status-transcricao', 'Configure a chave Gemini na aba Config.', 'err'); return; }
+  setStatus('status-transcricao', 'Transcrevendo com Gemini... pode demorar alguns segundos');
+  try {
+    const base64 = await fileToBase64(selectedFile);
+    const mimeType = selectedFile.type || 'audio/mpeg';
+    const prompt = `Transcreva este áudio médico em português brasileiro com precisão máxima.
+É um laudo de radiologia ditado por um médico radiologista brasileiro.
+Use sempre os termos técnicos corretos de radiologia médica em português.
+Termos importantes que devem ser reconhecidos corretamente: ${VOCAB_MEDICO.join(', ')}.
+Retorne APENAS a transcrição literal do áudio, sem comentários adicionais, sem formatação extra.`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys.gemini}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mimeType, data: base64 } }
+        ]}]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    let texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    texto = aplicarCorrecoes(texto);
+    if (document.getElementById('medico-select').value === 'luciano') texto = expandirAtalhos(texto);
+    document.getElementById('resultado-transcricao').value = texto;
+    setStatus('status-transcricao', 'Pronto!', 'ok');
+  } catch(e) {
+    setStatus('status-transcricao', 'Erro: ' + e.message, 'err');
+  }
+}
+
+async function gerarConclusao() {
+  const achados = document.getElementById('achados-input').value.trim();
+  if (!achados) { setStatus('status-conclusao', 'Cole os achados primeiro.', 'err'); return; }
+  if (!keys.anthropic) { setStatus('status-conclusao', 'Configure a chave Claude na aba Config.', 'err'); return; }
+  const tipo = document.getElementById('tipo-exame').value;
+  setStatus('status-conclusao', 'Gerando...');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': keys.anthropic, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: `Você é um assistente especializado em laudos de radiologia médica brasileiros. Com base nos ACHADOS abaixo de um exame de ${tipo === 'auto' ? 'imagem médica' : tipo}, gere APENAS os itens da CONCLUSÃO. Regras: inclua apenas achados patológicos ou clinicamente relevantes; achados normais NÃO entram; se tudo normal escreva conclusão de normalidade; use numeração 1. 2. 3.; linguagem técnica médica em português brasileiro; responda APENAS com os itens numerados sem cabeçalho.\n\nACHADOS:\n${achados}` }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    document.getElementById('resultado-conclusao').value = data.content.map(b => b.text || '').join('');
+    setStatus('status-conclusao', 'Pronto!', 'ok');
+  } catch(e) {
+    setStatus('status-conclusao', 'Erro: ' + e.message, 'err');
+  }
+}
+
+function copiar(id) {
+  const texto = document.getElementById(id).value;
+  navigator.clipboard.writeText(texto).then(() => {
+    const btn = event.target.closest('button');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function mandarParaConclusao() {
+  const texto = document.getElementById('resultado-transcricao').value;
+  if (!texto) return;
+  document.getElementById('achados-input').value = texto;
+  showTab('conclusao');
+}
+
+function salvarChave(tipo) {
+  const val = document.getElementById(tipo + '-key').value.trim();
+  if (!val) return;
+  keys[tipo] = val;
+  try { localStorage.setItem(tipo + '_key', val); } catch(e) {}
+  const nomes = { gemini: 'Gemini', anthropic: 'Claude' };
+  const el = document.getElementById('status-' + tipo);
+  el.textContent = nomes[tipo] + ': chave configurada ✓';
+  el.style.color = '#2d7a3a';
+}
+</script>
+</body>
+</html>
