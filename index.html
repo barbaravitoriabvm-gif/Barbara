@@ -36,11 +36,8 @@
   .upload-area:hover { background: #f9f9f6; border-color: #aaa; }
   .upload-area.has-file { border-style: solid; border-color: #2d7a3a; color: #2d7a3a; }
   .atalho-item { display: flex; align-items: flex-start; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 8px; gap: 12px; }
-  .atalho-key { font-weight: 500; font-size: 13px; color: #1a6ab5; white-space: nowrap; min-width: 90px; }
+  .atalho-key { font-weight: 500; font-size: 13px; color: #1a6ab5; white-space: nowrap; min-width: 110px; }
   .atalho-val { font-size: 12px; color: #555; line-height: 1.5; flex: 1; }
-  .correcao-item { display: flex; align-items: flex-start; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 6px; gap: 12px; font-size: 12px; }
-  .correcao-de { color: #c0392b; text-decoration: line-through; min-width: 160px; }
-  .correcao-para { color: #2d7a3a; flex: 1; }
   .section-title { font-size: 13px; color: #444; margin-bottom: 1rem; font-weight: 500; }
   .divider { border: none; border-top: 1px solid #e0e0e0; margin: 1.5rem 0; }
   .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #e8f4e8; color: #2d7a3a; display: inline-block; margin-left: 8px; }
@@ -49,7 +46,6 @@
 <body>
 <div class="container">
   <h1>🩺 Ferramenta de Laudos Médicos <span class="badge">Gemini</span></h1>
-
   <div class="tabs">
     <button class="tab active" onclick="showTab('transcricao')">🎙 Transcrição</button>
     <button class="tab" onclick="showTab('conclusao')">📄 Conclusão</button>
@@ -79,11 +75,10 @@
     </div>
     <div class="section">
       <span class="label">Resultado</span>
-      <textarea id="resultado-transcricao" rows="12" placeholder="A transcrição aparece aqui..."></textarea>
+      <textarea id="resultado-transcricao" rows="14" placeholder="A transcrição formatada aparece aqui..."></textarea>
     </div>
     <div class="row">
-      <button class="btn" onclick="copiar('resultado-transcricao')">📋 Copiar</button>
-      <button class="btn" onclick="mandarParaConclusao()">Usar como achados →</button>
+      <button class="btn" onclick="copiar('resultado-transcricao')">📋 Copiar tudo</button>
     </div>
   </div>
 
@@ -100,7 +95,9 @@
         <option value="ressonancia">Ressonância magnética</option>
         <option value="rx">Raio-X</option>
         <option value="angiotomografia">Angiotomografia</option>
+        <option value="angioressonancia">Angioressonância</option>
         <option value="ultrassom">Ultrassom</option>
+        <option value="abdome">Ressonância de abdome</option>
       </select>
     </div>
     <div class="row" style="margin-top:0; margin-bottom:1rem;">
@@ -119,21 +116,18 @@
   <div id="tab-atalhos" class="panel">
     <p class="section-title">Atalhos do Luciano</p>
     <div id="lista-atalhos"></div>
-    <hr class="divider">
-    <p class="section-title">Correções automáticas (todos os médicos)</p>
-    <div id="lista-correcoes"></div>
   </div>
 
   <div id="tab-config" class="panel">
     <div class="section">
-      <span class="label">Chave da API Google Gemini (transcrição) — começa com AIza</span>
+      <span class="label">Chave da API Google Gemini — começa com AIza</span>
       <div class="key-row">
         <input type="password" id="gemini-key" placeholder="AIza...">
         <button class="btn" onclick="salvarChave('gemini')">Salvar</button>
       </div>
     </div>
     <div class="section">
-      <span class="label">Chave da API Anthropic Claude (conclusão) — começa com sk-ant</span>
+      <span class="label">Chave da API Anthropic Claude — começa com sk-ant</span>
       <div class="key-row">
         <input type="password" id="anthropic-key" placeholder="sk-ant-...">
         <button class="btn" onclick="salvarChave('anthropic')">Salvar</button>
@@ -151,7 +145,6 @@
 
 <script>
 const keys = { gemini: '', anthropic: '' };
-
 try {
   if (localStorage.getItem('gemini_key')) { keys.gemini = localStorage.getItem('gemini_key'); document.getElementById('status-gemini').textContent = 'Gemini: chave configurada ✓'; document.getElementById('status-gemini').style.color = '#2d7a3a'; }
   if (localStorage.getItem('anthropic_key')) { keys.anthropic = localStorage.getItem('anthropic_key'); document.getElementById('status-anthropic').textContent = 'Claude: chave configurada ✓'; document.getElementById('status-anthropic').style.color = '#2d7a3a'; }
@@ -160,48 +153,38 @@ try {
 let selectedFile = null;
 
 const VOCAB_MEDICO = [
-  "osteófitos","tricompartimental","tricompartimentais","femorotibial","femoropatelar",
-  "intercondilianas","côndilo femoral","côndilos femorais","subcondral","cartilagem",
-  "menisco medial","menisco lateral","corno posterior","corno anterior","intrassubstancial",
-  "ligamento cruzado anterior","ligamento cruzado posterior","poplíteo","poplítea","fossa poplítea",
-  "derrame articular","sinovial","proliferação sinovial","entesófito","diáfise femoral",
+  "osteófitos","osteofitose marginal","tricompartimental","tricompartimentais","femorotibial","femoropatelar",
+  "intercondilianas","côndilo femoral","côndilos femorais","subcondral","cartilagem","eminências intercondilianas",
+  "menisco medial","menisco lateral","corno posterior","corno anterior","raiz posterior","raiz anterior",
+  "intrassubstancial","ligamento cruzado anterior","ligamento cruzado posterior","poplíteo","poplítea","fossa poplítea",
+  "bursa anserina","bursa poplítea","derrame articular","sinovial","proliferação sinovial","entesófito",
+  "peritendinite patelar","ligamento patelar","tendão patelar","tendão quadríceps","músculo quadríceps",
   "hiperintensidade de sinal","sequências ponderadas em T2","sequências ponderadas em T1",
-  "substância branca","substância cinzenta","lobos frontais","lobos parietais",
+  "substância branca","substância cinzenta","lobos frontais","lobos parietais","lobo temporal",
   "protrusão discal","hérnia discal","saco dural","raiz nervosa","cone medular","cauda equina",
   "nódulo de Schmorl","espondilose","retificação","lordose","cifose","escoliose",
   "supraespinhal","infraespinhal","subescapular","redondo menor","bíceps braquial",
   "manguito rotador","articulação glenoumeral","articulação acromioclavicular",
   "tubérculos umerais","tenossinovite","tendinopatia","rotura parcial","rotura intrassubstancial",
   "bursa subacromial","bursa subdeltoidea","bursite","lábio glenoide","sulco intertubercular",
-  "ressonância magnética","tomografia computadorizada","angiotomografia","DP spir","FLAIR","SWI","DWI",
-  "raiz meniscal","corno meniscal","eixo anteroposterior","fibras tendíneas"
-];
-
-const CORRECOES = [
-  [/associa[çc][aã]o magn[eé]tic[ao]/gi, "ressonância magnética"],
-  [/fon[çc]a magn[eé]tica/gi, "ressonância magnética"],
-  [/supraespial/gi, "supraespinhal"],
-  [/infraespial/gi, "infraespinhal"],
-  [/hiperintestado[s]?\s+de\s+sals[ií]cula\s+esp\.?\s*2/gi, "hiperintensidade de sinal nas sequências ponderadas em T2"],
-  [/hiperintestado[s]?/gi, "hiperintensidade de sinal"],
-  [/rotura intersubstancial/gi, "rotura intrassubstancial"],
-  [/b[uú]rstula/gi, "bursa"],
-  [/b[uú]rstite/gi, "bursite"],
-  [/medula rossa/gi, "medular óssea"],
-  [/derrama articular/gi, "derrame articular"],
-  [/fossa pupl[ií]da/gi, "fossa poplítea"],
-];
-
-const CORRECOES_DISPLAY = [
-  ["associação/fonça magnética", "ressonância magnética"],
-  ["supraespial", "supraespinhal"],
-  ["infraespial", "infraespinhal"],
-  ["hiperintestado(s)", "hiperintensidade de sinal"],
-  ["rotura intersubstancial", "rotura intrassubstancial"],
-  ["búrstula / búrstite", "bursa / bursite"],
-  ["medula rossa", "medular óssea"],
-  ["derrama articular", "derrame articular"],
-  ["fossa puplida", "fossa poplítea"],
+  "metadiafisária distal","rádio","ulna","ossos do carpo","quirodáctilos",
+  "articulação carpometacárpica","radiocárpica","radiocárpico","osteofitose",
+  "fibrocartilagem triangular","túnel carpal","nervo mediano","nervo ulnar","etiologia reacional",
+  "ressonância magnética","tomografia computadorizada","angiotomografia","angioressonância",
+  "angiorressonância","DP spir","FLAIR","SWI","DWI","TOF","MIP",
+  "subclávia","artéria subclávia","polígono de Willis","tronco braquiocefálico",
+  "seios paranasais","seios maxilares","células etmoidais","seio frontal","sinusopatia inflamatória",
+  "microangiopatia","Fazekas","gliose","intraparenquimatosas","extra-axiais","tentório",
+  "carótida comum","carótida interna","artéria vertebral","artéria basilar",
+  "estenose","ateroma","aterosclerose","seio sagital","seio transverso","veia jugular",
+  "parênquima cerebral","sistema ventricular","corpo caloso","tronco cerebral","glândula hipofisária",
+  "difusão","restrição à difusão","quimioembolização","embolização","hepatopatia crônica",
+  "cúpula hepática","segmento VIII","veias hepáticas","veia cava superior",
+  "LI-RADS","necrose coagulativa","degeneração hemorrágica","realce pelo meio de contraste",
+  "divertículo duodenal","diverticulite","doença diverticular","hérnias de parede abdominal",
+  "região epigástrica","forame herniário","ducto de Wirsung","parênquima pancreático",
+  "vesícula biliar","colédoco","vias biliares","veia porta","aorta abdominal",
+  "sistemas pielo-calicilares","parênquima renal","linfonodomegalia","baço","adrenais"
 ];
 
 const ATALHOS_LUCIANO = {
@@ -209,8 +192,24 @@ const ATALHOS_LUCIANO = {
   "@areas": "Áreas focais de hipersinal nas sequências ponderadas em T2, que não restringem à difusão, subcentimétricas, distribuídas pela substância branca dos lobos frontais e parietais bilateralmente.",
   "@artrose": "Alterações degenerativas na articulação acromioclavicular caracterizadas por: redução do espaço articular, irregularidade dos contornos das superfícies articulares apostas, edema na medular óssea adjacente, osteófitos marginais, além de hipertrofia capsular.",
   "@tuber": "Irregularidade dos contornos na camada cortical dos tubérculos umerais, associado a cistos subcorticais na medular óssea adjacente.",
-  "@bursite": "Pequena quantidade de líquido na topografia da bursa subacromial-subdeltoidea que pode estar relacionado a processo inflamatório (bursite)."
+  "@bursite": "Pequena quantidade de líquido na topografia da bursa subacromial-subdeltoidea que pode estar relacionado a processo inflamatório (bursite).",
+  "@INTRA": "Hiperintensidade de sinal nas sequências ponderadas em T2 acometendo o corno posterior do menisco medial, sem evidências de extensão para as superfícies articulares, sugerindo lesão intrassubstancial.",
+  "@PERITENDINITE": "Líquido e edema no tecido celular subcutâneo da face anterior do joelho adjacente ao ligamento patelar, que pode representar peritendinite patelar."
 };
+
+const CORRECOES = [
+  [/associa[çc][aã]o magn[eé]tic[ao]/gi, "ressonância magnética"],
+  [/fon[çc]a magn[eé]tica/gi, "ressonância magnética"],
+  [/supraespial/gi, "supraespinhal"],
+  [/infraespial/gi, "infraespinhal"],
+  [/hiperintestado[s]?/gi, "hiperintensidade de sinal"],
+  [/rotura intersubstancial/gi, "rotura intrassubstancial"],
+  [/b[uú]rstula/gi, "bursa"],
+  [/medula rossa/gi, "medular óssea"],
+  [/derrama articular/gi, "derrame articular"],
+  [/fossa pupl[ií]da/gi, "fossa poplítea"],
+  [/pequeno\s+e\s+moderado\s+derrame/gi, "Pequeno/moderado derrame"],
+];
 
 function aplicarCorrecoes(texto) {
   let r = texto;
@@ -228,9 +227,6 @@ function expandirAtalhos(texto) {
 function renderAtalhos() {
   document.getElementById('lista-atalhos').innerHTML = Object.entries(ATALHOS_LUCIANO).map(([k,v]) =>
     `<div class="atalho-item"><span class="atalho-key">${k}</span><span class="atalho-val">${v}</span></div>`
-  ).join('');
-  document.getElementById('lista-correcoes').innerHTML = CORRECOES_DISPLAY.map(([de,para]) =>
-    `<div class="correcao-item"><span class="correcao-de">${de}</span><span class="correcao-para">${para}</span></div>`
   ).join('');
 }
 
@@ -268,15 +264,33 @@ async function fileToBase64(file) {
 async function transcreverAudio() {
   if (!selectedFile) { setStatus('status-transcricao', 'Selecione um arquivo MP3 primeiro.', 'err'); return; }
   if (!keys.gemini) { setStatus('status-transcricao', 'Configure a chave Gemini na aba Config.', 'err'); return; }
-  setStatus('status-transcricao', 'Transcrevendo com Gemini... pode demorar alguns segundos');
+  setStatus('status-transcricao', 'Transcrevendo... aguarde');
   try {
     const base64 = await fileToBase64(selectedFile);
     const mimeType = selectedFile.type || 'audio/mpeg';
-    const prompt = `Transcreva este áudio médico em português brasileiro com precisão máxima.
-É um laudo de radiologia ditado por um médico radiologista brasileiro.
-Use sempre os termos técnicos corretos de radiologia médica em português.
-Termos importantes que devem ser reconhecidos corretamente: ${VOCAB_MEDICO.join(', ')}.
-Retorne APENAS a transcrição literal do áudio, sem comentários adicionais, sem formatação extra.`;
+    const medico = document.getElementById('medico-select').value;
+
+    const prompt = `Você é um especialista em transcrição de laudos de radiologia médica brasileiros.
+
+Transcreva LITERALMENTE este áudio de laudo médico. NUNCA invente, adicione ou modifique informações.
+
+REGRAS CRÍTICAS:
+1. Transcreva APENAS o que o médico realmente fala — ZERO invenção
+2. Se não entender uma palavra, deixe [inaudível] — nunca invente um termo
+3. Formate assim:
+
+ACHADOS:
+• [transcrição literal do achado 1]
+• [transcrição literal do achado 2]
+
+CONCLUSÃO:
+1. [transcrição literal da conclusão 1]
+2. [transcrição literal da conclusão 2]
+
+4. NÃO inclua cabeçalho, nome do paciente, técnica de exame
+5. Use os termos técnicos corretos quando reconhecê-los: ${VOCAB_MEDICO.slice(0,100).join(', ')}
+6. Quando o médico falar "ausência" referindo-se a lesões cerebrais, escreva: Não há evidência na metodologia utilizada de lesões expansivas intraparenquimatosas, de calcificações patológicas ou coleções extra-axiais acima ou abaixo do tentório.
+7. "pequeno barra moderado" ou "pequeno e moderado" → escreva "Pequeno/moderado"`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys.gemini}`, {
       method: 'POST',
@@ -292,7 +306,7 @@ Retorne APENAS a transcrição literal do áudio, sem comentários adicionais, s
     if (data.error) throw new Error(data.error.message);
     let texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     texto = aplicarCorrecoes(texto);
-    if (document.getElementById('medico-select').value === 'luciano') texto = expandirAtalhos(texto);
+    if (medico === 'luciano') texto = expandirAtalhos(texto);
     document.getElementById('resultado-transcricao').value = texto;
     setStatus('status-transcricao', 'Pronto!', 'ok');
   } catch(e) {
@@ -310,7 +324,7 @@ async function gerarConclusao() {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': keys.anthropic, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: `Você é um assistente especializado em laudos de radiologia médica brasileiros. Com base nos ACHADOS abaixo de um exame de ${tipo === 'auto' ? 'imagem médica' : tipo}, gere APENAS os itens da CONCLUSÃO. Regras: inclua apenas achados patológicos ou clinicamente relevantes; achados normais NÃO entram; se tudo normal escreva conclusão de normalidade; use numeração 1. 2. 3.; linguagem técnica médica em português brasileiro; responda APENAS com os itens numerados sem cabeçalho.\n\nACHADOS:\n${achados}` }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: `Você é um assistente especializado em laudos de radiologia médica brasileiros. Com base nos ACHADOS abaixo de um exame de ${tipo === 'auto' ? 'imagem médica' : tipo}, gere APENAS os itens da CONCLUSÃO. Regras: inclua apenas achados patológicos ou clinicamente relevantes; achados normais NÃO entram; se tudo normal escreva conclusão de normalidade; use numeração 1. 2. 3.; linguagem técnica médica em português brasileiro; responda APENAS com os itens numerados sem cabeçalho. NUNCA invente informações que não estejam nos achados.\n\nACHADOS:\n${achados}` }] })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
@@ -329,13 +343,6 @@ function copiar(id) {
     btn.textContent = '✓ Copiado!';
     setTimeout(() => btn.textContent = orig, 1500);
   });
-}
-
-function mandarParaConclusao() {
-  const texto = document.getElementById('resultado-transcricao').value;
-  if (!texto) return;
-  document.getElementById('achados-input').value = texto;
-  showTab('conclusao');
 }
 
 function salvarChave(tipo) {
