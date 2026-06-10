@@ -270,14 +270,24 @@ async function transcreverAudio() {
     const mimeType = selectedFile.type || 'audio/mpeg';
     const medico = document.getElementById('medico-select').value;
 
-    const prompt = `Você é um especialista em transcrição de laudos de radiologia médica brasileiros.
+    const prompt = `Você é um especialista em transcrição de laudos de radiologia médica brasileiros com vasta experiência em áudios de baixa qualidade, voz muffled, sotaques regionais e fala rápida.
 
 Transcreva LITERALMENTE este áudio de laudo médico. NUNCA invente, adicione ou modifique informações.
 
+ESTRATÉGIA PARA ÁUDIOS DIFÍCEIS:
+- Analise o áudio inteiro primeiro para entender o contexto geral do exame antes de transcrever
+- Para palavras pouco claras, use o CONTEXTO CLÍNICO e o vocabulário abaixo para identificar o termo mais plausível
+- Palavras ambíguas: prefira sempre o termo médico correto da lista de vocabulário se fizer sentido na frase
+- Preste atenção às sílabas e radicais: "osteo-", "meni-", "tendão", "bursa", "ligamento" etc. ajudam a identificar termos cortados
+- Números e medidas (ex: "três milímetros", "grau II"): ouça com atenção especial — erros numéricos são graves
+- Ruído de fundo, chiado ou voz abafada: analise o ritmo e entonação da frase para inferir a estrutura gramatical
+- Fala muito rápida: segmente em unidades de sentido médico (achado → localização → característica)
+
 REGRAS CRÍTICAS:
-1. Transcreva APENAS o que o médico realmente fala — ZERO invenção
-2. Se não entender uma palavra, deixe [inaudível] — nunca invente um termo
-3. Formate assim:
+1. Transcreva APENAS o que o médico realmente fala — ZERO invenção de achados
+2. Palavra realmente inaudível após análise cuidadosa: marque [inaudível] — nunca invente um termo clínico
+3. Trecho longo ininteligível: [inaudível — aproximadamente X palavras]
+4. Formate assim:
 
 ACHADOS:
 • [transcrição literal do achado 1]
@@ -287,10 +297,11 @@ CONCLUSÃO:
 1. [transcrição literal da conclusão 1]
 2. [transcrição literal da conclusão 2]
 
-4. NÃO inclua cabeçalho, nome do paciente, técnica de exame
-5. Use os termos técnicos corretos quando reconhecê-los: ${VOCAB_MEDICO.slice(0,100).join(', ')}
-6. Quando o médico falar "ausência" referindo-se a lesões cerebrais, escreva: Não há evidência na metodologia utilizada de lesões expansivas intraparenquimatosas, de calcificações patológicas ou coleções extra-axiais acima ou abaixo do tentório.
-7. "pequeno barra moderado" ou "pequeno e moderado" → escreva "Pequeno/moderado"`;
+5. NÃO inclua cabeçalho, nome do paciente, técnica de exame
+6. Use os termos técnicos corretos quando reconhecê-los: ${VOCAB_MEDICO.join(', ')}
+7. Quando o médico falar "ausência" referindo-se a lesões cerebrais, escreva: Não há evidência na metodologia utilizada de lesões expansivas intraparenquimatosas, de calcificações patológicas ou coleções extra-axiais acima ou abaixo do tentório.
+8. "pequeno barra moderado" ou "pequeno e moderado" → escreva "Pequeno/moderado"
+9. Sons parecidos com termos do vocabulário (ex: "intrasubstancial" → "intrassubstancial", "pertendinite" → "peritendinite"): corrija silenciosamente para o termo correto`;
 
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys.gemini}`, {
       method: 'POST',
