@@ -303,7 +303,7 @@ CONCLUSÃO:
 8. "pequeno barra moderado" ou "pequeno e moderado" → escreva "Pequeno/moderado"
 9. Sons parecidos com termos do vocabulário (ex: "intrasubstancial" → "intrassubstancial", "pertendinite" → "peritendinite"): corrija silenciosamente para o termo correto`;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${keys.gemini}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keys.gemini}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
